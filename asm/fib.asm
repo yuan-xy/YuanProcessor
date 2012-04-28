@@ -11,13 +11,13 @@ label :fib
 	BRANCH :fib1, :r7
 	DEC :r4	
 	PUSH :r4
-	CALL :fib
+	CALL :fib				#fib(i-1)
 	POP :r4
 	PUSH :r1
 	DEC :r4
-	CALL :fib
+	CALL :fib				#fib(i-2)
 	POP :r2
-	ADD :r1, :r2, :r1
+	ADD :r1, :r2, :r1		#fib(i)=fib(i-1)+fib(i-2)
 	RET()
 label :fib1
 	MOVi 1, :r1

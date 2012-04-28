@@ -71,55 +71,11 @@ def gen_code(index,a=0,b=0,c=0)
 end
 
 def OR(a, b, c) gen_code(1,a,b,c)  end
-
-def AND(a, b, c)
-  code 2
-  code CPU.reg_index(a)
-  code CPU.reg_index(b)
-  code CPU.reg_index(c)
-end
-
-def NOT(a, b)
-  code 3
-  code CPU.reg_index(a)
-  code CPU.reg_index(b)
-  code 0
-end
-
-def ADD(a, b, c)
-  code 4
-  code CPU.reg_index(a)
-  code CPU.reg_index(b)
-  code CPU.reg_index(c)
-end
-
-def _ADDi(a, b, c)
-  raise "8bit imm only support range -128 ~ 127" if(b>127||b<-128) 
-  raise "src and dest reg cann't be same" if a==c
-  MOVi(b,c)
-  ADD(a,c,c)
-end
-
-def SUB(a, b, c)
-  code 5
-  code CPU.reg_index(a)
-  code CPU.reg_index(b)
-  code CPU.reg_index(c)
-end
-
-def _SUBi(a, b, c)
-  raise "8bit imm only support range -128 ~ 127" if(b>127||b<-128) 
-  raise "src and dest reg cann't be same" if a==c
-  MOVi(b,c)
-  SUB(a,c,c)
-end
-
-def LOAD(a, b)
-  code 6
-  code CPU.reg_index(a)
-  code CPU.reg_index(b)
-  code 0
-end
+def AND(a, b, c) gen_code(2,a,b,c)  end
+def NOT(a, b)  gen_code(3,a,b)  end
+def ADD(a, b, c) gen_code(4,a,b,c)  end
+def SUB(a, b, c)  gen_code(5,a,b,c)  end
+def LOAD(a, b) gen_code(6,a,b)  end
 
 def LOADi(a, b)
   code 7
@@ -127,12 +83,7 @@ def LOADi(a, b)
   code CPU.reg_index(b)
 end
 
-def MOV(a, b)
-  code 8
-  code CPU.reg_index(a)
-  code CPU.reg_index(b)
-  code 0
-end
+def MOV(a, b) gen_code(8,a,b)  end
 
 def MOVi(a, b)
   code 9
@@ -140,12 +91,7 @@ def MOVi(a, b)
   code CPU.reg_index(b)
 end
 
-def SAVE(a, b)
-  code 10
-  code CPU.reg_index(a)
-  code CPU.reg_index(b)
-  code 0
-end
+def SAVE(a, b) gen_code(10,a,b)  end
 
 def SAVEi(a, b)
   code 11
@@ -153,12 +99,7 @@ def SAVEi(a, b)
   code_imm_or_address(b)
 end
 
-def JMP(a)
-  code 12
-  code CPU.reg_index(a)
-  code 0
-  code 0
-end
+def JMP(a) gen_code(12,a)  end
 
 def BRANCH(a, b)
   code 13
@@ -178,13 +119,28 @@ def INC(a) gen_code(20,a) end
 def DEC(a) gen_code(21,a) end
 def PUSH(a) gen_code(22,a) end
 def POP(a) gen_code(23,a) end
+  
 def CALL(a)
   code 24
   code a
   code 0
 end
 def RET() gen_code(25) end
-            
+
+
+def _ADDi(a, b, c)
+  raise "8bit imm only support range -128 ~ 127" if(b>127||b<-128) 
+  raise "src and dest reg cann't be same" if a==c
+  MOVi(b,c)
+  ADD(a,c,c)
+end
+def _SUBi(a, b, c)
+  raise "8bit imm only support range -128 ~ 127" if(b>127||b<-128) 
+  raise "src and dest reg cann't be same" if a==c
+  MOVi(b,c)
+  SUB(a,c,c)
+end
+              
 def EXIT
   MOVi(0xFFFF,:ip)
 end

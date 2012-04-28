@@ -2,6 +2,34 @@
 
 $STACK_INIT = 0xF000
 
+$INSNs = [
+  ["NOP","0","0","0"],
+  ["OR","r","r","r"],
+  ["AND","r","r","r"],
+  ["NOT","r","r","0"],
+  ["ADD","r","r","r"],
+  ["SUB","r","r","r"],
+  ["LOAD","r","r","0"],
+  ["LOADi","i","i","r"],
+  ["MOV","r","r","0"],
+  ["MOVi","i","i","r"],
+  ["SAVE","r","r","0"],
+  ["SAVEi","r","i","i"],
+  ["JMP","r","0","0"],
+  ["BRANCH","i","i","r"],
+  ["EQUAL","r","r","r"],
+  ["GEQUAL","r","r","r"],
+  ["LEQUAL","r","r","r"],
+  ["GREAT","r","r","r"],
+  ["LESS","r","r","r"],
+  ["NEQUAL","r","r","r"],
+  ["INC","r","0","0"],
+  ["DEC","r","0","0"],
+  ["PUSH","r","0","0"],
+  ["POP","r","0","0"],
+  ["CALL","i","i","0"],
+  ["RET","0","0","0"],
+  ]
 class YuanCpu
   attr_reader :mem
   
@@ -38,7 +66,7 @@ class YuanCpu
     @regs[c] = @regs[a] & @regs[b]
   end
 
-  def NOT(a, b)
+  def NOT(a, b, null=0)
     @regs[a]==0?  @regs[b] = 1 : @regs[b] = 0
   end  
   
@@ -50,7 +78,7 @@ class YuanCpu
     @regs[c] = @regs[a] - @regs[b]
   end
   
-  def LOAD(a, b)
+  def LOAD(a, b, null=0)
     @regs[b] = @mem[@regs[a]]
   end
 
@@ -58,7 +86,7 @@ class YuanCpu
     @regs[c] = @mem[(a<<8) + b]
   end
   
-  def MOV(a, b)
+  def MOV(a, b, null=0)
     @regs[b] = @regs[a]
   end 
 
@@ -66,7 +94,7 @@ class YuanCpu
     @regs[c] = (a<<8) + b
   end
       
-  def SAVE(a, b)
+  def SAVE(a, b, null=0)
     @mem[@regs[b]] = @regs[a]
   end
 
@@ -74,7 +102,7 @@ class YuanCpu
     @mem[(b<<8) + c] = @regs[a]
   end  
   
-  def JMP(a)
+  def JMP(a, null1=0, null2=0)
     @regs[0] = @regs[a]
   end
 
@@ -114,36 +142,36 @@ class YuanCpu
     @regs[c] = (@regs[a] != @regs[b])
   end  
 
-  def INC(a)
+  def INC(a, null1=0, null2=0)
     @regs[a] += 1
   end
   
-  def DEC(a)
+  def DEC(a, null1=0, null2=0)
     @regs[a] -= 1
   end
 
-  def PUSH(a)
+  def PUSH(a, null1=0, null2=0)
     addr = reg(:sp)
     SAVE a, reg_index(:sp)
-    reg_set (:sp, addr+1)
+    reg_set(:sp, addr+1)
   end
 
-  def POP(a)
+  def POP(a, null1=0, null2=0)
     #puts "before pop %d" % reg(:sp)
     addr = reg(:sp)
-    reg_set (:sp,addr-1)
+    reg_set(:sp,addr-1)
     #puts "in pop %d" % reg(:sp)
     LOAD reg_index(:sp), a
     #puts "after pop %d" % reg(:sp)
   end
 
-  def CALL(a,b)
+  def CALL(a,b,null=0)
     PUSH reg_index(:ip)
     PUSH reg_index(:sp)
     @regs[0] = (a<<8)+b
   end
   
-  def RET
+  def RET(null1=0, null2=0, null3=0)
     POP reg_index(:sp) 
     POP reg_index(:ip)
   end
@@ -165,60 +193,14 @@ class YuanCpu
       b = @mem[ip + 2]
       c = @mem[ip + 3]
       @regs[0] = ip + 4
-      puts "opcode:#{opcode} (#{a},#{b},#{c})"
+      puts "addr:#{ip} \t #{$INSNs[opcode][0]}(#{a},#{b},#{c})"
       case opcode
       when 0
         # NOP
-      when 1
-        OR(a,b,c)
-      when 2
-        AND(a,b,c)
-      when 3
-        NOT(a,b)        
-      when 4
-        ADD(a,b,c)       
-      when 5
-        SUB(a,b,c)
-      when 6
-        LOAD(a,b)
-      when 7
-        LOADi(a,b,c)
-      when 8
-        MOV(a,b)
-      when 9
-        MOVi(a,b,c)        
-      when 10
-        SAVE(a,b,c)       
-      when 11
-        SAVEi(a,b,c)
-      when 12
-        JMP(a)        
-      when 13
-        BRANCH(a,b,c)
-      when 14
-        EQUAL(a,b,c)
-      when 15
-        GEQUAL(a,b,c)
-      when 16
-        LEQUAL(a,b,c)        
-      when 17
-        GREAT(a,b,c)
-      when 18
-        LESS(a,b,c) 
-      when 19
-        NEQUAL(a,b,c)        
-      when 20
-        INC(a)
-      when 21
-        DEC(a)  
-      when 22
-        PUSH(a)
-      when 23
-        POP(a)
-      when 24
-        CALL(a,b)
-      when 25
-        RET()
+      when 1..25
+        s = "#{$INSNs[opcode][0]}(#{a},#{b},#{c})"
+        #puts s
+        eval s
       else
         raise "invalid opcode: #{opcode}!"
         break
