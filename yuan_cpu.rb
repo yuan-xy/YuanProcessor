@@ -70,9 +70,32 @@ class YuanCpu
   end
 
   def BRANCH(a, b, c)
-    @regs[a]? JMP(b) : JMP(c)
+    b = b - 256 if b>127
+    a = a - 256 if a>127  
+    @regs[c]?  @regs[0]+=a : @regs[0]+=b
   end
-      
+  
+  def EQUAL(a,b,c)
+    @regs[c] = (@regs[a] == @regs[b])
+  end
+
+  def GEQUAL(a,b,c)
+    @regs[c] = (@regs[a] >= @regs[b])
+  end
+
+  def LEQUAL(a,b,c)
+    @regs[c] = (@regs[a] <= @regs[b])
+  end
+
+  def GREAT(a,b,c)
+    @regs[c] = (@regs[a] > @regs[b])
+  end
+
+  def LESS(a,b,c)
+    @regs[c] = (@regs[a] < @regs[b])
+  end
+  
+
   def load(obj_file)
     File.open(obj_file) do |f|
       @mem = f.read.unpack("C*")
@@ -120,6 +143,16 @@ class YuanCpu
         JMP(a)        
       when 13
         BRANCH(a,b,c)
+      when 14
+        EQUAL(a,b,c)
+      when 15
+        GEQUAL(a,b,c)
+      when 16
+        LEQUAL(a,b,c)        
+      when 17
+        GREAT(a,b,c)
+      when 18
+        LESS(a,b,c)        
       else
         raise "invalid opcode: #{opcode}!"
         break
@@ -127,7 +160,7 @@ class YuanCpu
     end
     unless $embedded
       @regs.each_with_index do |x,i|
-        puts "#{@reg_names[i]} value: %x" % x
+        puts "#{@reg_names[i]} value: %s" % x
       end
     end
   end

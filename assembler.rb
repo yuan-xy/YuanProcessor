@@ -44,9 +44,15 @@ def static(*names)
   names.each { |name| Statics[name] = 0 }; names
 end
 
-def var(count = 1)
+def var(value=0)
+  vname = "var_%d" % Vars.size
+  Vars[vname] = value
+  return vname
+end
+
+def vars(value=0, count = 2)
   names = []
-  count.times { Vars[(names.push "var_%d" % Vars.size).last] = 0 }
+  count.times { names.push var(value) }
   return names
 end
 
@@ -56,13 +62,14 @@ def const(value)
 end
 
 
-
-def OR(a, b, c)
-  code 1
+def gen_code(index,a,b=0,c=0)
+  code index
   code CPU.reg_index(a)
   code CPU.reg_index(b)
   code CPU.reg_index(c)
 end
+
+def OR(a, b, c) gen_code(1,a,b,c)  end
 
 def AND(a, b, c)
   code 2
@@ -89,7 +96,7 @@ def _ADDi(a, b, c)
   MOVi(b,c)
   ADD(a,c,c)
 end
-  
+
 def SUB(a, b, c)
   code 5
   code CPU.reg_index(a)
@@ -150,11 +157,19 @@ end
 
 def BRANCH(a, b, c)
   code 13
-  code CPU.reg_index(a)
-  code CPU.reg_index(b)
+  labl = make_label
+  Text.push "@" + a.to_s + " " + labl
+  Text.push "@" + b.to_s + " " + labl
   code CPU.reg_index(c)
+  label labl
 end
 
+def EQUAL(a, b, c) gen_code(14,a,b,c) end
+def GEQUAL(a, b, c) gen_code(15,a,b,c) end
+def LEQUAL(a, b, c) gen_code(16,a,b,c) end
+def GREAT(a, b, c) gen_code(17,a,b,c) end
+def LESS(a, b, c) gen_code(18,a,b,c) end
+  
 def EXIT
   MOVi(0xFFFF,:ip)
 end
@@ -178,32 +193,41 @@ class Assembler
       v.each_byte { |x| assembly.push x }
     end
     
+    puts Vars
+    puts assembly
+    
     offset = 0
     labels = {}
     assembly.each do |x|
       if x.class == Fixnum
         offset = offset + 1
       else
-        if x.start_with? '#'
+        if x.to_s.start_with? '#'
           labels[x[1..-1]] = offset # get the address of label
-        else 
-          offset = offset + 2 # ref to label, 16bit
+        elsif  x.to_s.start_with? '@'
+          offset = offset + 1       # relative label
+        else
+          offset = offset + 2 # absolute ref to label, 16bit
         end
       end
     end
     
-    #debugger
-    
-    # Remove all list having labels.
-    assembly.delete_if { |x| x.to_s.start_with? "#" }
-    
     # Substitute labels by values.
     assembly2 = []
     assembly.each do |x| 
+      next if x.to_s.start_with? "#"
       if x.class==String ||  x.class==Symbol
-        tmpx = labels[x.to_s.strip]
-        assembly2 << (tmpx >> 8)
-        assembly2 << (0xFF & tmpx)
+        if x.to_s.start_with? '@'
+          dest, cur = x[1..-1].split(" ")
+          diff = labels[dest] - labels[cur]
+          puts "cur:#{cur}, dest:#{dest}, diff:#{diff}"
+          raise "relative branch only support -128 ~ 127" if(diff>127||diff<-128) 
+          assembly2 << diff
+        else
+          tmpx = labels[x.to_s.strip]
+          assembly2 << (tmpx >> 8)
+          assembly2 << (0xFF & tmpx)
+        end  
       else
         assembly2 << x
       end

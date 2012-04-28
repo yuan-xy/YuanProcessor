@@ -36,5 +36,20 @@ class TestRoman < Test::Unit::TestCase
         assert_equal(40, cpu.reg(:r7))
         assert_equal(cpu.reg(:r6), cpu.reg(:r8))
       end
-      
+
+      def test_sum100
+        load 'assembler.rb'
+        Assembler.asm("asm/sum100.asm")
+        cpu = YuanCpu.new
+        cpu.load_run
+        assert_equal(5050, cpu.reg(:r1))
+        assert_equal(101, cpu.reg(:r2))
+        assert_equal(100, cpu.reg(:r3))
+        assert_equal(1, cpu.reg(:r4))
+        assert_equal(cpu.mem[-4], cpu.reg(:r3))
+        assert_equal(cpu.mem.size-4, cpu.reg(:r7))
+        assert_equal(cpu.mem[-1], cpu.reg(:r1))
+        
+      end
+            
 end

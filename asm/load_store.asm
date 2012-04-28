@@ -1,4 +1,4 @@
-a,b = var 2
+a = var
 LOADi 0, :r1
 LOADi 2, :r2
 LOADi 3, :r3
