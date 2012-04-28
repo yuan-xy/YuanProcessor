@@ -1,12 +1,21 @@
 #!/usr/bin/ruby
 
+$STACK_INIT = 0xF000
+
 class YuanCpu
   attr_reader :mem
   
+  
   def initialize
     @reg_names = [:ip, :r1, :r2, :r3, :r4, :r5, :r6, :r7, :r8, :sp]
-    @regs = [0,0,0,0,0,0,0,0,0,0]
+    @regs = [0,0,0,0,0,0,0,0,0,$STACK_INIT]
     @mem = []
+  end
+  
+  def stack
+    b = $STACK_INIT
+    e = reg(:sp)-1
+    @mem[b..e]
   end
   
   def reg_index(name)
@@ -17,7 +26,7 @@ class YuanCpu
     @regs[reg_index(name)]
   end
   
-  def reg=(name,value)
+  def reg_set(name,value)
     @regs[reg_index(name)] = value
   end
   
@@ -69,13 +78,15 @@ class YuanCpu
     @regs[0] = @regs[a]
   end
 
+  def sign_half_word(a,b)
+    diff = (a<<8) + b
+    diff -= 0x10000 if a>0x7F
+    diff
+  end
+
   def BRANCH(a, b, c)
     if @regs[c] == true
-      diff = (a<<8) + b
-      puts diff
-      diff -= 0x10000 if a>0x7F
-      puts "chage diff to"+diff.to_s
-      @regs[0] += diff
+      @regs[0] += sign_half_word(a,b)
     end
   end
   
@@ -98,8 +109,45 @@ class YuanCpu
   def LESS(a,b,c)
     @regs[c] = (@regs[a] < @regs[b])
   end
-  
 
+  def NEQUAL(a,b,c)
+    @regs[c] = (@regs[a] != @regs[b])
+  end  
+
+  def INC(a)
+    @regs[a] += 1
+  end
+  
+  def DEC(a)
+    @regs[a] -= 1
+  end
+
+  def PUSH(a)
+    addr = reg(:sp)
+    SAVE a, reg_index(:sp)
+    reg_set (:sp, addr+1)
+  end
+
+  def POP(a)
+    #puts "before pop %d" % reg(:sp)
+    addr = reg(:sp)
+    reg_set (:sp,addr-1)
+    #puts "in pop %d" % reg(:sp)
+    LOAD reg_index(:sp), a
+    #puts "after pop %d" % reg(:sp)
+  end
+
+  def CALL(a,b)
+    PUSH reg_index(:ip)
+    PUSH reg_index(:sp)
+    @regs[0] = (a<<8)+b
+  end
+  
+  def RET
+    POP reg_index(:sp) 
+    POP reg_index(:ip)
+  end
+  
   def load(obj_file)
     File.open(obj_file) do |f|
       @mem = f.read.unpack("C*")
@@ -156,11 +204,26 @@ class YuanCpu
       when 17
         GREAT(a,b,c)
       when 18
-        LESS(a,b,c)        
+        LESS(a,b,c) 
+      when 19
+        NEQUAL(a,b,c)        
+      when 20
+        INC(a)
+      when 21
+        DEC(a)  
+      when 22
+        PUSH(a)
+      when 23
+        POP(a)
+      when 24
+        CALL(a,b)
+      when 25
+        RET()
       else
         raise "invalid opcode: #{opcode}!"
         break
       end
+      #puts "current stack (#{stack.size}): " + stack.join(",") unless stack.nil?
     end
     unless $embedded
       @regs.each_with_index do |x,i|

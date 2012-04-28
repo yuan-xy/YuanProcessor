@@ -6,6 +6,7 @@ require 'yuan_cpu.rb'
 $embedded = old_e
 
 CPU = YuanCpu.new
+puts "CPU.reg_index(0) = %x " % CPU.reg_index(0)
 Text = []
 Labels = []
 Statics = {}
@@ -62,11 +63,11 @@ def const(value)
 end
 
 
-def gen_code(index,a,b=0,c=0)
+def gen_code(index,a=0,b=0,c=0)
   code index
-  code CPU.reg_index(a)
-  code CPU.reg_index(b)
-  code CPU.reg_index(c)
+  a==0? code(0) : code(CPU.reg_index(a))
+  b==0? code(0) : code(CPU.reg_index(b))
+  c==0? code(0) : code(CPU.reg_index(c))
 end
 
 def OR(a, b, c) gen_code(1,a,b,c)  end
@@ -172,7 +173,18 @@ def GEQUAL(a, b, c) gen_code(15,a,b,c) end
 def LEQUAL(a, b, c) gen_code(16,a,b,c) end
 def GREAT(a, b, c) gen_code(17,a,b,c) end
 def LESS(a, b, c) gen_code(18,a,b,c) end
-  
+def NEQUAL(a, b, c) gen_code(19,a,b,c) end
+def INC(a) gen_code(20,a) end
+def DEC(a) gen_code(21,a) end
+def PUSH(a) gen_code(22,a) end
+def POP(a) gen_code(23,a) end
+def CALL(a)
+  code 24
+  code a
+  code 0
+end
+def RET() gen_code(25) end
+            
 def EXIT
   MOVi(0xFFFF,:ip)
 end
@@ -196,9 +208,6 @@ class Assembler
       v.each_byte { |x| assembly.push x }
     end
     
-    puts Vars
-    puts assembly
-    
     offset = 0
     labels = {}
     assembly.each do |x|
@@ -212,6 +221,8 @@ class Assembler
         end
       end
     end
+    
+    puts assembly
     
     # Substitute labels by values.
     assembly2 = []
@@ -234,7 +245,7 @@ class Assembler
       end
     end
     
-    #puts assembly
+    
 
     File.open(obj_file,"wb") do |f|
       f << assembly2.pack("C*")

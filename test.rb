@@ -49,7 +49,26 @@ class TestRoman < Test::Unit::TestCase
         assert_equal(cpu.mem[-4], cpu.reg(:r3))
         assert_equal(cpu.mem.size-4, cpu.reg(:r7))
         assert_equal(cpu.mem[-1], cpu.reg(:r1))
-        
       end
-            
+
+      def test_funcall
+        load 'assembler.rb'
+        Assembler.asm("asm/funcall.asm")
+        cpu = YuanCpu.new
+        cpu.load_run
+        assert_equal(3, cpu.reg(:r1))
+        assert_equal(2, cpu.reg(:r2))
+        assert_equal(2, cpu.reg(:r5))
+        assert_equal(1, cpu.reg(:r6))
+        assert_equal($STACK_INIT, cpu.reg(:sp))
+      end
+      
+      def test_fib
+        load 'assembler.rb'
+        Assembler.asm("asm/fib.asm")
+        cpu = YuanCpu.new
+        cpu.load_run
+        assert_equal(55, cpu.reg(:r1))
+      end
+                  
 end
