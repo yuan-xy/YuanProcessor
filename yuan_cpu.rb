@@ -70,9 +70,13 @@ class YuanCpu
   end
 
   def BRANCH(a, b, c)
-    b = b - 256 if b>127
-    a = a - 256 if a>127  
-    @regs[c]?  @regs[0]+=a : @regs[0]+=b
+    if @regs[c] == true
+      diff = (a<<8) + b
+      puts diff
+      diff -= 0x10000 if a>0x7F
+      puts "chage diff to"+diff.to_s
+      @regs[0] += diff
+    end
   end
   
   def EQUAL(a,b,c)

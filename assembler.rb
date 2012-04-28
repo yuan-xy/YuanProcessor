@@ -93,6 +93,8 @@ def ADD(a, b, c)
 end
 
 def _ADDi(a, b, c)
+  raise "8bit imm only support range -128 ~ 127" if(b>127||b<-128) 
+  raise "src and dest reg cann't be same" if a==c
   MOVi(b,c)
   ADD(a,c,c)
 end
@@ -105,6 +107,8 @@ def SUB(a, b, c)
 end
 
 def _SUBi(a, b, c)
+  raise "8bit imm only support range -128 ~ 127" if(b>127||b<-128) 
+  raise "src and dest reg cann't be same" if a==c
   MOVi(b,c)
   SUB(a,c,c)
 end
@@ -155,12 +159,11 @@ def JMP(a)
   code 0
 end
 
-def BRANCH(a, b, c)
+def BRANCH(a, b)
   code 13
   labl = make_label
   Text.push "@" + a.to_s + " " + labl
-  Text.push "@" + b.to_s + " " + labl
-  code CPU.reg_index(c)
+  code CPU.reg_index(b)
   label labl
 end
 
@@ -204,10 +207,8 @@ class Assembler
       else
         if x.to_s.start_with? '#'
           labels[x[1..-1]] = offset # get the address of label
-        elsif  x.to_s.start_with? '@'
-          offset = offset + 1       # relative label
         else
-          offset = offset + 2 # absolute ref to label, 16bit
+          offset = offset + 2 # ref to label, 16bit
         end
       end
     end
@@ -221,8 +222,8 @@ class Assembler
           dest, cur = x[1..-1].split(" ")
           diff = labels[dest] - labels[cur]
           puts "cur:#{cur}, dest:#{dest}, diff:#{diff}"
-          raise "relative branch only support -128 ~ 127" if(diff>127||diff<-128) 
-          assembly2 << diff
+          assembly2 << (diff >> 8)
+          assembly2 << (0xFF & diff)
         else
           tmpx = labels[x.to_s.strip]
           assembly2 << (tmpx >> 8)

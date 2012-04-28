@@ -8,8 +8,8 @@ MOVi 1, :r4		#step
 label :do_sum
 	ADD :r2, :r1, :r1	#sum+=i
 	ADD :r2, :r4, :r2	#i+=step
-	GREAT :r2, :r3, :r5 #i>count
-	BRANCH  :exit, :do_sum, :r5
+	LEQUAL :r2, :r3, :r5 #i<=count
+	BRANCH :do_sum, :r5
 label :exit
 	SAVEi :r1, d
 EXIT()
