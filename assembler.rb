@@ -10,10 +10,10 @@ class Assembler
   def initialize
     @CPU = YuanCpu.new
     @CPU.reg_names.each do |x|
-      puts "#{x.to_s} = #{@CPU.reg_index(x)}"
-      TOPLEVEL_BINDING.eval "#{x.to_s} = #{@CPU.reg_index(x)}"
+      instance_eval "@#{x} = #{@CPU.reg_index(x)}"
+      Assembler.class_eval "attr_reader :#{x}"
     end
-
+    
     puts "@CPU.reg_index(0) = %x " % @CPU.reg_index(0)
     @Text = []
     @Labels = []
@@ -69,9 +69,9 @@ class Assembler
 
   def gen_code(index,a=0,b=0,c=0)
     code index
-    a==0? code(0) : code(@CPU.reg_index(a))
-    b==0? code(0) : code(@CPU.reg_index(b))
-    c==0? code(0) : code(@CPU.reg_index(c))
+    a==0? code(0) : code(a)
+    b==0? code(0) : code(b)
+    c==0? code(0) : code(c)
   end
 
   def OR(a, b, c) gen_code(1,a,b,c)  end
@@ -84,7 +84,7 @@ class Assembler
   def LOADi(a, b)
     code 7
     code_imm_or_address(a)
-    code @CPU.reg_index(b)
+    code b
   end
 
   def MOV(a, b) gen_code(8,a,b)  end
@@ -92,14 +92,14 @@ class Assembler
   def MOVi(a, b)
     code 9
     code_imm_or_address(a)
-    code @CPU.reg_index(b)
+    code b
   end
 
   def SAVE(a, b) gen_code(10,a,b)  end
 
   def SAVEi(a, b)
     code 11
-    code @CPU.reg_index(a)
+    code a
     code_imm_or_address(b)
   end
 
@@ -109,7 +109,7 @@ class Assembler
     code 13
     labl = make_label
     @Text.push "@" + a.to_s + " " + labl.to_s
-    code @CPU.reg_index(b)
+    code b
     label labl
   end
 
@@ -146,7 +146,7 @@ class Assembler
   end
 
   def EXIT
-    MOVi(0xFFFF,:ip)
+    MOVi(0xFFFF, ip)
   end
   
     
