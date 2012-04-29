@@ -2,35 +2,35 @@
 
 $STACK_INIT = 0xF000
 
-# 0:not used,  r:register id,  a:memory address,  i:immediate
+# 0:not used,  r:register id,   i:immediate or memory address
 
 $INSNs = [
-  ["NOP","0","0","0"],
+  ["NOP",0,0,0],
   ["OR","r","r","r"],
   ["AND","r","r","r"],
-  ["NOT","r","r","0"],
+  ["NOT","r","r",0],
   ["ADD","r","r","r"],
   ["SUB","r","r","r"],
-  ["LOAD","r","r","0"],
-  ["LOADi","a","a","r"],
-  ["MOV","r","r","0"],
+  ["LOAD","r","r",0],
+  ["LOADi","i","i","r"],
+  ["MOV","r","r",0],
   ["MOVi","i","i","r"],
-  ["SAVE","r","r","0"],
-  ["SAVEi","r","a","a"],
-  ["JMP","r","0","0"],
-  ["BRANCH","a","a","r"],
+  ["SAVE","r","r",0],
+  ["SAVEi","r","i","i"],
+  ["JMP","r",0,0],
+  ["BRANCH","i","i","r"],
   ["EQUAL","r","r","r"],
   ["GEQUAL","r","r","r"],
   ["LEQUAL","r","r","r"],
   ["GREAT","r","r","r"],
   ["LESS","r","r","r"],
   ["NEQUAL","r","r","r"],
-  ["INC","r","0","0"],
-  ["DEC","r","0","0"],
-  ["PUSH","r","0","0"],
-  ["POP","r","0","0"],
-  ["CALL","a","a","0"],
-  ["RET","0","0","0"],
+  ["INC","r",0,0],
+  ["DEC","r",0,0],
+  ["PUSH","r",0,0],
+  ["POP","r",0,0],
+  ["CALL","i","i",0],
+  ["RET",0,0,0],
   ]
   
 def half_word(a,b)
@@ -43,9 +43,19 @@ def sign_half_word(a,b)
   diff
 end
     
+def insn_argc(insn)
+  argc=-1
+  insn.each {|x| break if x==0; argc+=1}
+  argc-=1 if insn.index("i")
+  argc
+end
+
+def insn_id(insn_name)
+  $INSNs.index{|x| x[0]==insn_name}
+end
+    
 class YuanCpu
   attr_reader :mem, :regs, :reg_names
-  
   
   def initialize
     @reg_names = [:ip, :r1, :r2, :r3, :r4, :r5, :r6, :r7, :r8, :sp]

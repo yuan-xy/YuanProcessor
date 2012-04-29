@@ -8,18 +8,30 @@ $embedded = old_e
 class Assembler
   
   def initialize
-    @CPU = YuanCpu.new
-    @CPU.reg_names.each do |x|
-      instance_eval "@#{x} = #{@CPU.reg_index(x)}"
-      Assembler.class_eval "attr_reader :#{x}"
-    end
-    
-    puts "@CPU.reg_index(0) = %x " % @CPU.reg_index(0)
     @Text = []
     @Labels = []
     @Consts = {}
     @Vars = {}
     @Literals = {}
+    @CPU = YuanCpu.new
+    @CPU.reg_names.each do |x|
+      instance_eval "@#{x} = #{@CPU.reg_index(x)}"
+      Assembler.class_eval "attr_reader :#{x}"
+    end
+    $INSNs.each_with_index do |insn,idx|
+      argc = insn_argc(insn)
+      args = " a,b,c"[0,argc*2]
+      argc>0? comma="," : comma = ""
+      s = %Q{
+        def #{insn[0]}(#{args})
+          gen_code(#{idx} #{comma} #{args})
+        end
+      }
+      na = insn[0]
+      unless na=="LOADi" || na=="MOVi" || na=="SAVEi" || na=="BRANCH" || na=="CALL"
+        Assembler.class_eval s 
+      end
+    end
   end
 
   def make_label
@@ -55,12 +67,6 @@ class Assembler
     @Vars[name] = value
   end
 
-  def vars(value=0, count = 2)
-    names = []
-    count.times { names.push var(value) }
-    return names
-  end
-
   def const(value)
     return @Consts[value] if @Consts.has_key? value
     @Consts[value] = "const_%d" % @Consts.size
@@ -69,68 +75,42 @@ class Assembler
 
   def gen_code(index,a=0,b=0,c=0)
     code index
-    a==0? code(0) : code(a)
-    b==0? code(0) : code(b)
-    c==0? code(0) : code(c)
+    code(a)
+    code(b)
+    code(c)
   end
-
-  def OR(a, b, c) gen_code(1,a,b,c)  end
-  def AND(a, b, c) gen_code(2,a,b,c)  end
-  def NOT(a, b)  gen_code(3,a,b)  end
-  def ADD(a, b, c) gen_code(4,a,b,c)  end
-  def SUB(a, b, c)  gen_code(5,a,b,c)  end
-  def LOAD(a, b) gen_code(6,a,b)  end
 
   def LOADi(a, b)
-    code 7
+    code insn_id("LOADi")
     code_imm_or_address(a)
     code b
   end
-
-  def MOV(a, b) gen_code(8,a,b)  end
 
   def MOVi(a, b)
-    code 9
+    code insn_id("MOVi")
     code_imm_or_address(a)
     code b
   end
 
-  def SAVE(a, b) gen_code(10,a,b)  end
-
   def SAVEi(a, b)
-    code 11
+    code insn_id("SAVEi")
     code a
     code_imm_or_address(b)
   end
 
-  def JMP(a) gen_code(12,a)  end
-
   def BRANCH(a, b)
-    code 13
+    code insn_id("BRANCH")
     labl = make_label
     @Text.push "@" + a.to_s + " " + labl.to_s
     code b
     label labl
   end
 
-  def EQUAL(a, b, c) gen_code(14,a,b,c) end
-  def GEQUAL(a, b, c) gen_code(15,a,b,c) end
-  def LEQUAL(a, b, c) gen_code(16,a,b,c) end
-  def GREAT(a, b, c) gen_code(17,a,b,c) end
-  def LESS(a, b, c) gen_code(18,a,b,c) end
-  def NEQUAL(a, b, c) gen_code(19,a,b,c) end
-  def INC(a) gen_code(20,a) end
-  def DEC(a) gen_code(21,a) end
-  def PUSH(a) gen_code(22,a) end
-  def POP(a) gen_code(23,a) end
-
   def CALL(a)
-    code 24
+    code insn_id("CALL")
     code a
     code 0
   end
-  def RET() gen_code(25) end
-
 
   def _ADDi(a, b, c)
     raise "8bit imm only support range -128 ~ 127" if(b>127||b<-128) 
@@ -215,9 +195,10 @@ class Assembler
         f << "\n"
       end
       @Vars.each do |k,v|
-        f << labels[v]
+        f << labels[k.to_s]
         f << " V "
-        f << v
+        f << k
+        f << " %d" % v
         f << "\n"
       end
     end
