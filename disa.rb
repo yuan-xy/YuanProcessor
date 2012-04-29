@@ -19,11 +19,15 @@ class Disa
     end
   end
   
-  def load_symbol(file)
+  def load_symbol_table(file)
     File.open(file).each_line do |line|
       ss = line.split
       @sym_table[ss[0].to_i] = ss[1..-1]
     end
+  end
+  
+  def find_symbol(name)
+    @sym_table.find {|k,v| v[1]==name}
   end
   
   def reg(a)
@@ -94,7 +98,7 @@ class Disa
 
   def run(file="a.out")
     load(file)
-    load_symbol(file+".map")
+    load_symbol_table(file+".map")
     dis()
   end
     

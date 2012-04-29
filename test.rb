@@ -27,7 +27,7 @@ class TestRoman < Test::Unit::TestCase
         Assembler.new.asm("asm/load_store.asm")
         cpu = YuanCpu.new
         cpu.load_run
-        assert_equal(7, cpu.reg(:r1))
+        assert_equal(insn_id("LOADi"), cpu.reg(:r1))
         assert_equal(0, cpu.reg(:r2))
         assert_equal(1, cpu.reg(:r3))
         assert_equal(0, cpu.reg(:r4))
@@ -46,9 +46,11 @@ class TestRoman < Test::Unit::TestCase
         assert_equal(101, cpu.reg(:r2))
         assert_equal(100, cpu.reg(:r3))
         assert_equal(1, cpu.reg(:r4))
-        assert_equal(cpu.mem[-2], cpu.reg(:r3))
-        assert_equal(cpu.mem.size-2, cpu.reg(:r7))
-        assert_equal(cpu.mem[-1], cpu.reg(:r1))
+        require 'disa.rb'
+        disa = Disa.new
+        disa.load_symbol_table("a.out.map")
+        addr_d = disa.find_symbol("d")[0]
+        assert_equal(cpu.mem[addr_d], cpu.reg(:r1))
       end
 
       def test_funcall

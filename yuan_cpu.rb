@@ -6,6 +6,7 @@ $STACK_INIT = 0xF000
 
 $INSNs = [
   ["NOP",0,0,0],
+  ["BKP",0,0,0],
   ["OR","r","r","r"],
   ["AND","r","r","r"],
   ["NOT","r","r",0],
@@ -32,6 +33,8 @@ $INSNs = [
   ["CALL","i","i",0],
   ["RET",0,0,0],
   ]
+
+$INSN_SIZE = $INSNs.size  
   
 def half_word(a,b)
   (a<<8) + b
@@ -55,7 +58,8 @@ def insn_id(insn_name)
 end
     
 class YuanCpu
-  attr_reader :mem, :regs, :reg_names
+  attr_reader :reg_names
+  attr_accessor :mem, :regs
   
   def initialize
     @reg_names = [:ip, :r1, :r2, :r3, :r4, :r5, :r6, :r7, :r8, :sp]
@@ -79,6 +83,12 @@ class YuanCpu
   
   def reg_set(name,value)
     @regs[reg_index(name)] = value
+  end
+  
+  def print_regs
+    @regs.each_with_index do |x,i|
+      puts "#{@reg_names[i]} value: %s" % x
+    end
   end
   
   def OR(a, b, c)
@@ -210,22 +220,22 @@ class YuanCpu
       c = @mem[ip + 3]
       @regs[0] = ip + 4
       insn = "#{$INSNs[opcode][0]}(#{a},#{b},#{c})"
-      puts "addr:#{ip} \t #{insn}"
+      puts "addr:#{ip} \t #{insn}"  unless $embedded
       case opcode
       when 0
         # NOP
-      when 1..25
+      when 1
+        puts "breakpoint at address #{ip} reached."
+        @regs[0] = ip
+        break # BKP
+      when 2..$INSN_SIZE-1
         eval insn
       else
         raise "invalid opcode: #{opcode}!"
       end
       #puts "current stack (#{stack.size}): " + stack.join(",") unless stack.nil?
     end
-    unless $embedded
-      @regs.each_with_index do |x,i|
-        puts "#{@reg_names[i]} value: %s" % x
-      end
-    end
+    print_regs unless $embedded
   end
   
   def load_run(obj_file="a.out")
