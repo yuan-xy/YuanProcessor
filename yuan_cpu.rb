@@ -2,6 +2,8 @@
 
 $STACK_INIT = 0xF000
 
+# 0:not used,  r:register id,  a:memory address,  i:immediate
+
 $INSNs = [
   ["NOP","0","0","0"],
   ["OR","r","r","r"],
@@ -10,13 +12,13 @@ $INSNs = [
   ["ADD","r","r","r"],
   ["SUB","r","r","r"],
   ["LOAD","r","r","0"],
-  ["LOADi","i","i","r"],
+  ["LOADi","a","a","r"],
   ["MOV","r","r","0"],
   ["MOVi","i","i","r"],
   ["SAVE","r","r","0"],
-  ["SAVEi","r","i","i"],
+  ["SAVEi","r","a","a"],
   ["JMP","r","0","0"],
-  ["BRANCH","i","i","r"],
+  ["BRANCH","a","a","r"],
   ["EQUAL","r","r","r"],
   ["GEQUAL","r","r","r"],
   ["LEQUAL","r","r","r"],
@@ -27,11 +29,22 @@ $INSNs = [
   ["DEC","r","0","0"],
   ["PUSH","r","0","0"],
   ["POP","r","0","0"],
-  ["CALL","i","i","0"],
+  ["CALL","a","a","0"],
   ["RET","0","0","0"],
   ]
+  
+def half_word(a,b)
+  (a<<8) + b
+end
+  
+def sign_half_word(a,b)
+  diff = (a<<8) + b
+  diff -= 0x10000 if a>0x7F
+  diff
+end
+    
 class YuanCpu
-  attr_reader :mem
+  attr_reader :mem, :regs, :reg_names
   
   
   def initialize
@@ -106,12 +119,6 @@ class YuanCpu
     @regs[0] = @regs[a]
   end
 
-  def sign_half_word(a,b)
-    diff = (a<<8) + b
-    diff -= 0x10000 if a>0x7F
-    diff
-  end
-
   def BRANCH(a, b, c)
     if @regs[c] == true
       @regs[0] += sign_half_word(a,b)
@@ -181,7 +188,6 @@ class YuanCpu
       @mem = f.read.unpack("C*")
     end
     puts "program @mem size: %d" % @mem.size
-    #100000.times {|x| @mem << 0} #stack area
   end
   
   def run
@@ -193,17 +199,15 @@ class YuanCpu
       b = @mem[ip + 2]
       c = @mem[ip + 3]
       @regs[0] = ip + 4
-      puts "addr:#{ip} \t #{$INSNs[opcode][0]}(#{a},#{b},#{c})"
+      insn = "#{$INSNs[opcode][0]}(#{a},#{b},#{c})"
+      puts "addr:#{ip} \t #{insn}"
       case opcode
       when 0
         # NOP
       when 1..25
-        s = "#{$INSNs[opcode][0]}(#{a},#{b},#{c})"
-        #puts s
-        eval s
+        eval insn
       else
         raise "invalid opcode: #{opcode}!"
-        break
       end
       #puts "current stack (#{stack.size}): " + stack.join(",") unless stack.nil?
     end

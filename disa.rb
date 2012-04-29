@@ -15,17 +15,29 @@ class Disa
     end
   end
   
+  def reg(a)
+    ":r" + a.to_s
+  end
+  
   def decode_insn_param(klazzs,values)
-    idx = klazzs.index("i")
+    a,b,c = values
+    idx_a = klazzs.index("a")
+    idx_i = klazzs.index("i")
+    if idx_a.nil?
+      idx = idx_i
+    else
+      idx = idx_a
+    end
     if idx==0
-      ((values[0]<<8) + values[1]).to_s + ", :r" + values[2].to_s
+      half_word(a,b).to_s + ", " + reg(c)
     elsif idx==1
-      ":r" + values[0].to_s + ", " + ((values[1]<<8) + values[2]).to_s
+      reg(a) + ", " + half_word(b,c).to_s
     else
       ret = ""
       klazzs.each_with_index do |k,i|
         break if k=="0"
-        ret << ":r" + values[i].to_s
+        raise "unrecognized mode: #{k}" if k!="r" 
+        ret << reg(values[i])
       end
       return ret
     end
