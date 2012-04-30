@@ -39,6 +39,7 @@ class Debugger
         @cpu.mem[ip] = @breaks[ip]
         @cpu.run
       when "next" , "n"
+        #todo: check not exceed code segment
         @cpu.mem[ip] = @breaks[ip]
         @breaks[ip+4] = @cpu.mem[ip+4]
         @cpu.mem[ip+4] = insn_id("BKP")
@@ -47,19 +48,20 @@ class Debugger
         @cpu.print_regs
       when  /p(rint)? (.*)/
         name = command.split[1]
-        sym =  @disa.find_symbol(name)
-        if sym
-          sym.flatten!
-          if sym[1]=="L"
-            puts "Label #{name}'s address is #{sym[0]}"
-          elsif  sym[1]=="V"
-            puts "Variable #{name}: #{@cpu.mem[sym[0]]}"
-          else
-            puts "unknown flag #{sym[1]} for symbol #{name}."
-          end
-        else
-          "symbol #{name} can't be found."
+        sym =  @disa.find_symbol_label(name)
+        puts sym
+        unless sym.nil?
+          puts "Label #{name}'s address is #{sym[0]}"; next 
         end
+        sym =  @disa.find_symbol_var(name)
+        unless sym.nil?
+          puts "Variable #{name} (address #{sym[0]}): #{@cpu.mem_word sym[0] }"; next
+        end
+        sym =  @disa.find_symbol_segment(name)
+        unless sym.nil?
+          puts "segment #{name}'s address is #{sym[0]}"; next 
+        end
+        puts "symbol #{name} can't be found."
       when "quit" , "exit" , "q"
         break
       end

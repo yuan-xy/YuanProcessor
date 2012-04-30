@@ -136,18 +136,21 @@ class Assembler
   
   def dump(obj_file)
     
-    assembly = []
-    @Text.each { |x| assembly.push x }
-    @Vars.each { |k, v| assembly.push "#%s" % k, v }
-    @Consts.each { |k, v| assembly.push "#%s" % v, k }
+    asmb = []
+    asmb.push "#.code"
+    @Text.each { |x| asmb.push x }
+    asmb.push "#.data"
+    @Vars.each { |k, v| asmb.push "#%s" % k;  word_to_char4(v).each{|vc| asmb.push vc}  }
+    asmb.push "#.rodata"
+    @Consts.each { |k, v| asmb.push "#%s" % v, k }
     @Literals.each do |k, v|
-      assembly.push "#%s" % k
-      v.each_byte { |x| assembly.push x }
+      asmb.push "#%s" % k
+      v.each_byte { |x| asmb.push x }
     end
     
     offset = 0
     labels = {}
-    assembly.each do |x|
+    asmb.each do |x|
       if x.class == Fixnum
         offset = offset + 1
       else
@@ -159,31 +162,29 @@ class Assembler
       end
     end
     
-    puts assembly
-    
     # Substitute labels by values.
-    assembly2 = []
-    assembly.each do |x| 
+    asmb2 = []
+    asmb.each do |x| 
       next if x.to_s.start_with? "#"
       if x.class==String ||  x.class==Symbol
         if x.to_s.start_with? '@'
           dest, cur = x[1..-1].split(" ")
           diff = labels[dest] - labels[cur]
-          puts "cur:#{cur}, dest:#{dest}, diff:#{diff}"
-          assembly2 << (diff >> 8)
-          assembly2 << (0xFF & diff)
+          #puts "cur:#{cur}, dest:#{dest}, diff:#{diff}"
+          asmb2 << (diff >> 8)
+          asmb2 << (0xFF & diff)
         else
           tmpx = labels[x.to_s.strip]
-          assembly2 << (tmpx >> 8)
-          assembly2 << (0xFF & tmpx)
+          asmb2 << (tmpx >> 8)
+          asmb2 << (0xFF & tmpx)
         end  
       else
-        assembly2 << x
+        asmb2 << x
       end
     end
     
     File.open(obj_file,"wb") do |f|
-      f << assembly2.pack("C*")
+      f << asmb2.pack("C*")
     end
     
     File.open(obj_file+".map","wb") do |f|
@@ -199,6 +200,12 @@ class Assembler
         f << " V "
         f << k
         f << " %d" % v
+        f << "\n"
+      end
+      labels.find_all{|k,v| k[0]=="."[0]}.each do |k,v|
+        f << v
+        f << " S "
+        f << k
         f << "\n"
       end
     end

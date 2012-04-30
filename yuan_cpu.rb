@@ -45,6 +45,20 @@ def sign_half_word(a,b)
   diff -= 0x10000 if a>0x7F
   diff
 end
+
+def word_to_char4(w)
+  ret = []
+  arr = []
+  31.downto(0) {|n| arr <<  w[n] }
+  arr.each_slice(8).each {|sl| ret << sl.to_s.to_i(2)}
+  ret
+end
+
+def char4_to_word(arr)
+  ret = (arr[0]<<24) + (arr[1]<<16) + (arr[2]<<8) + arr[3]
+  ret -= 0x100000000 if arr[0]>0x7F
+  ret  
+end
     
 def insn_argc(insn)
   argc=-1
@@ -71,6 +85,10 @@ class YuanCpu
     b = $STACK_INIT
     e = reg(:sp)-1
     @mem[b..e]
+  end
+  
+  def mem_word(address)
+    char4_to_word @mem[address..address+3]
   end
   
   def reg_index(name)
@@ -112,11 +130,13 @@ class YuanCpu
   end
   
   def LOAD(a, b, null=0)
-    @regs[b] = @mem[@regs[a]]
+    addr = @regs[a]
+    @regs[b] = char4_to_word @mem[addr..addr+3]
   end
 
   def LOADi(a, b, c)
-    @regs[c] = @mem[(a<<8) + b]
+    addr = (a<<8) + b
+    @regs[c] = char4_to_word @mem[addr..addr+3]
   end
   
   def MOV(a, b, null=0)
@@ -128,11 +148,13 @@ class YuanCpu
   end
       
   def SAVE(a, b, null=0)
-    @mem[@regs[b]] = @regs[a]
+    addr = @regs[b]
+    @mem[addr..addr+3] = word_to_char4 @regs[a]
   end
 
   def SAVEi(a, b, c)
-    @mem[(b<<8) + c] = @regs[a]
+    addr = (b<<8) + c
+    @mem[addr..addr+3] = word_to_char4 @regs[a]
   end  
   
   def JMP(a, null1=0, null2=0)
@@ -180,16 +202,13 @@ class YuanCpu
   def PUSH(a, null1=0, null2=0)
     addr = reg(:sp)
     SAVE a, reg_index(:sp)
-    reg_set(:sp, addr+1)
+    reg_set(:sp, addr+4)
   end
 
   def POP(a, null1=0, null2=0)
-    #puts "before pop %d" % reg(:sp)
     addr = reg(:sp)
-    reg_set(:sp,addr-1)
-    #puts "in pop %d" % reg(:sp)
+    reg_set(:sp,addr-4)
     LOAD reg_index(:sp), a
-    #puts "after pop %d" % reg(:sp)
   end
 
   def CALL(a,b,null=0)

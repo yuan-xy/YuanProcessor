@@ -9,7 +9,9 @@ class Disa
 
   def initialize
     @bin = []
-    @sym_table = {}
+    @symLabel = {}
+    @symVar = {}
+    @symSegment = {}
     @cur_insn = []    
   end
   
@@ -22,14 +24,29 @@ class Disa
   def load_symbol_table(file)
     File.open(file).each_line do |line|
       ss = line.split
-      @sym_table[ss[0].to_i] = ss[1..-1]
+      case ss[1]
+      when "L"
+        @symLabel[ss[0].to_i] = ss[2]
+      when "V"
+        @symVar[ss[0].to_i] = ss[2]
+      when "S"
+        @symSegment[ss[0].to_i] = ss[2]
+      end
     end
   end
   
-  def find_symbol(name)
-    @sym_table.find {|k,v| v[1]==name}
+  def find_symbol_label(name)
+    @symLabel.find {|k,v| v==name}
+  end
+
+  def find_symbol_var(name)
+    @symVar.find {|k,v| v==name}
   end
   
+  def find_symbol_segment(name)
+    @symSegment.find {|k,v| v==name}
+  end
+    
   def reg(a)
     "r" + a.to_s
   end
@@ -39,10 +56,15 @@ class Disa
       addr = sign_half_word(a,b)
     else
       addr = half_word(a,b)
+      if insn_name=="CALL"
+        symbol = @symLabel[addr]
+      else
+        symbol = @symVar[addr]
+      end
     end
-    symbol = @sym_table[addr]
     if symbol
-      ":"+symbol[1]   #may cast immidiate to symbol address in MOVi
+      puts symbol
+      ":"+symbol   #may cast immidiate to symbol address in MOVi
     else
       addr.to_s
     end
@@ -73,7 +95,7 @@ class Disa
     in_code_section = true
     @bin.each_with_index do |x,i|
       if i%4==0
-        symbol = @sym_table[i]
+        symbol = @symLabel[i]
         if symbol && symbol[0]=="L"
           printf "\nlable :#{symbol[1]}"
         end
@@ -87,7 +109,8 @@ class Disa
           insn_name = $INSNs[@cur_insn[0]][0]
           insn_para = decode_insn_param($INSNs[@cur_insn[0]],@cur_insn[1..-1])
           printf "\t#{insn_name}(#{insn_para})"
-        rescue
+        rescue Exception => error
+          puts error.backtrace
           puts "\t probably not code section from here!"
           in_code_section = false
         end
