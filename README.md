@@ -6,15 +6,22 @@ Yuan processor is a simple 32-bit RISC system. I implement assembler, linker , e
 
 ##0. Quick Play
 
+assemble and run
+
     $ ./assembler.rb asm/sum100.asm
     $ ./yuan_cpu.rb
 
+
+dis-assemble and debug the binary file
 
     $ ./disa.rb
     $ ./debugger.rb
     > b 4
     > r
     > q
+
+
+run all tests
 
     $ ./test.rb
 	Finished in 0.131666 seconds.
