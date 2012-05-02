@@ -3,20 +3,20 @@
 old_e = $embedded 
 $embedded = 1
 require 'yuan_cpu.rb'
-require 'disa.rb'
+require 'bin_util.rb'
 $embedded = old_e
 
 class Debugger
 
   def initialize
     @cpu = YuanCpu.new
-    @disa = Disa.new
+    @bin = BinUtil.new
     @breaks = {}
   end
 
 
   def run(file="a.out")
-    @disa.load_symbol_table(file+".map")
+    @bin.load_symbol_table(file+".map")
     @cpu.load(file)
     while true
       ip = @cpu.reg(:ip)
@@ -48,18 +48,14 @@ class Debugger
         @cpu.print_regs
       when  /p(rint)? (.*)/
         name = command.split[1]
-        sym =  @disa.find_symbol_label(name)
+        sym =  @bin.find_symbol_label(name)
         puts sym
         unless sym.nil?
           puts "Label #{name}'s address is #{sym[0]}"; next 
         end
-        sym =  @disa.find_symbol_var(name)
+        sym =  @bin.find_symbol_var(name)
         unless sym.nil?
           puts "Variable #{name} (address #{sym[0]}): #{@cpu.mem_word sym[0] }"; next
-        end
-        sym =  @disa.find_symbol_segment(name)
-        unless sym.nil?
-          puts "segment #{name}'s address is #{sym[0]}"; next 
         end
         puts "symbol #{name} can't be found."
       when "quit" , "exit" , "q"

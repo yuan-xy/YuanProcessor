@@ -1,4 +1,4 @@
-var :a, 100
+var :a, 1000
 var :d
 MOVi 0, r1 	#sum
 MOVi 1, r2		#i

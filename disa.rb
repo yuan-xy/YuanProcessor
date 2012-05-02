@@ -3,48 +3,18 @@
 old_e = $embedded 
 $embedded = 1
 require 'yuan_cpu.rb'
+require 'bin_util.rb'
 $embedded = old_e
 
 class Disa
 
   def initialize
-    @bin = []
-    @symLabel = {}
-    @symVar = {}
-    @symSegment = {}
+    @bin = BinUtil.new
     @cur_insn = []    
   end
   
   def load(obj_file)
-    File.open(obj_file) do |f|
-      @bin = f.read.unpack("C*")
-    end
-  end
-  
-  def load_symbol_table(file)
-    File.open(file).each_line do |line|
-      ss = line.split
-      case ss[1]
-      when "L"
-        @symLabel[ss[0].to_i] = ss[2]
-      when "V"
-        @symVar[ss[0].to_i] = ss[2]
-      when "S"
-        @symSegment[ss[0].to_i] = ss[2]
-      end
-    end
-  end
-  
-  def find_symbol_label(name)
-    @symLabel.find {|k,v| v==name}
-  end
-
-  def find_symbol_var(name)
-    @symVar.find {|k,v| v==name}
-  end
-  
-  def find_symbol_segment(name)
-    @symSegment.find {|k,v| v==name}
+    @bin.load obj_file
   end
     
   def reg(a)
@@ -57,13 +27,12 @@ class Disa
     else
       addr = half_word(a,b)
       if insn_name=="CALL"
-        symbol = @symLabel[addr]
+        symbol = @bin.symLabel[addr]
       else
-        symbol = @symVar[addr]
+        symbol = @bin.symVar[addr]
       end
     end
     if symbol
-      puts symbol
       ":"+symbol   #may cast immidiate to symbol address in MOVi
     else
       addr.to_s
@@ -93,9 +62,9 @@ class Disa
   def dis
     printf "Address\tInstruction\tDisassemble"
     in_code_section = true
-    @bin.each_with_index do |x,i|
+    @bin.bin.each_with_index do |x,i|
       if i%4==0
-        symbol = @symLabel[i]
+        symbol = @bin.symLabel[i]
         if symbol && symbol[0]=="L"
           printf "\nlable :#{symbol[1]}"
         end
@@ -121,7 +90,6 @@ class Disa
 
   def run(file="a.out")
     load(file)
-    load_symbol_table(file+".map")
     dis()
   end
     

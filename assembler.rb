@@ -10,6 +10,7 @@ class Assembler
   def initialize
     @Text = []
     @Labels = []
+    @Externs = []
     @Consts = {}
     @Vars = {}
     @Literals = {}
@@ -55,6 +56,10 @@ class Assembler
     else
       code a
     end
+  end
+  
+  def extern(sym)
+    @Externs.push sym.to_s
   end
 
   def literal(value)
@@ -112,19 +117,6 @@ class Assembler
     code 0
   end
 
-  def _ADDi(a, b, c)
-    raise "8bit imm only support range -128 ~ 127" if(b>127||b<-128) 
-    raise "src and dest reg cann't be same" if a==c
-    MOVi(b,c)
-    ADD(a,c,c)
-  end
-  def _SUBi(a, b, c)
-    raise "8bit imm only support range -128 ~ 127" if(b>127||b<-128) 
-    raise "src and dest reg cann't be same" if a==c
-    MOVi(b,c)
-    SUB(a,c,c)
-  end
-
   def EXIT
     MOVi(0xFFFF, ip)
   end
@@ -150,6 +142,7 @@ class Assembler
     
     offset = 0
     labels = {}
+    uses = {}
     asmb.each do |x|
       if x.class == Fixnum
         offset = offset + 1
@@ -161,6 +154,8 @@ class Assembler
         end
       end
     end
+    
+    @Externs.each {|x| labels[x] = 0xFFFF}
     
     # Substitute labels by values.
     asmb2 = []
@@ -174,9 +169,13 @@ class Assembler
           asmb2 << (diff >> 8)
           asmb2 << (0xFF & diff)
         else
-          tmpx = labels[x.to_s.strip]
-          asmb2 << (tmpx >> 8)
-          asmb2 << (0xFF & tmpx)
+          symbol = x.to_s.strip
+          tmpx = labels[symbol]
+          raise "symbol '#{x}' not found" if tmpx.nil?
+          uses[asmb2.size] = symbol
+          a,b = word_to_char2(tmpx)
+          asmb2 << a
+          asmb2 << b
         end  
       else
         asmb2 << x
@@ -187,12 +186,24 @@ class Assembler
       f << asmb2.pack("C*")
     end
     
+    File.open(obj_file+".use","wb") do |f|
+      uses.each do |k, v|
+        f << "#{k} #{v}\n"
+      end
+    end
+    
     File.open(obj_file+".map","wb") do |f|
       @Labels.each do |lb|
         name = lb.to_s
         f << labels[name]
         f << " L "
         f << name
+        f << "\n"
+      end
+      @Externs.each do |k,v|
+        f << 0xFFFF
+        f << " l "
+        f << k
         f << "\n"
       end
       @Vars.each do |k,v|

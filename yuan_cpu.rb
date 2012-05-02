@@ -10,8 +10,12 @@ $INSNs = [
   ["OR","r","r","r"],
   ["AND","r","r","r"],
   ["NOT","r","r",0],
+  ["NEG","r","r",0],  
+  ["INC","r",0,0],
+  ["DEC","r",0,0],
   ["ADD","r","r","r"],
   ["SUB","r","r","r"],
+  ["MUL","r","r","r"],  
   ["LOAD","r","r",0],
   ["LOADi","i","i","r"],
   ["MOV","r","r",0],
@@ -26,8 +30,6 @@ $INSNs = [
   ["GREAT","r","r","r"],
   ["LESS","r","r","r"],
   ["NEQUAL","r","r","r"],
-  ["INC","r",0,0],
-  ["DEC","r",0,0],
   ["PUSH","r",0,0],
   ["POP","r",0,0],
   ["CALL","i","i",0],
@@ -44,6 +46,12 @@ def sign_half_word(a,b)
   diff = (a<<8) + b
   diff -= 0x10000 if a>0x7F
   diff
+end
+
+def word_to_char2(w)
+  a = (w >> 8)
+  b = (0xFF & w)
+  [a,b]
 end
 
 def word_to_char4(w)
@@ -120,7 +128,19 @@ class YuanCpu
   def NOT(a, b, null=0)
     @regs[a]==0?  @regs[b] = 1 : @regs[b] = 0
   end  
+
+  def NEG(a, b, null=0)
+    @regs[b] = -@regs[a]
+  end
+
+  def INC(a, null1=0, null2=0)
+    @regs[a] += 1
+  end
   
+  def DEC(a, null1=0, null2=0)
+    @regs[a] -= 1
+  end
+      
   def ADD(a, b, c)
     @regs[c] = @regs[a] + @regs[b]
   end
@@ -129,6 +149,10 @@ class YuanCpu
     @regs[c] = @regs[a] - @regs[b]
   end
   
+  def MUL(a, b, c)
+    @regs[c] = @regs[a] * @regs[b]
+  end
+    
   def LOAD(a, b, null=0)
     addr = @regs[a]
     @regs[b] = char4_to_word @mem[addr..addr+3]
@@ -191,14 +215,6 @@ class YuanCpu
     @regs[c] = (@regs[a] != @regs[b])
   end  
 
-  def INC(a, null1=0, null2=0)
-    @regs[a] += 1
-  end
-  
-  def DEC(a, null1=0, null2=0)
-    @regs[a] -= 1
-  end
-
   def PUSH(a, null1=0, null2=0)
     addr = reg(:sp)
     SAVE a, reg_index(:sp)
@@ -226,7 +242,7 @@ class YuanCpu
     File.open(obj_file) do |f|
       @mem = f.read.unpack("C*")
     end
-    puts "program @mem size: %d" % @mem.size
+    puts "program @mem size: %d" % @mem.size   unless $embedded
   end
   
   def run
