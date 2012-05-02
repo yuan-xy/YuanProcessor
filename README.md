@@ -4,6 +4,22 @@ Yuan Processor
 Yuan processor is a simple 32-bit RISC system. I implement assembler, linker , emulator , debugger and dis-assembler for it using ruby programming language just for fun.
 
 
+##0. Quick Play
+
+    $ ./assembler.rb asm/sum100.asm
+    $ ./yuan_cpu.rb
+
+
+    $ ./disa.rb
+    $ ./debugger.rb
+    > b 4
+    > r
+    > q
+
+    $ ./test.rb
+	Finished in 0.131666 seconds.
+	8 tests, 34 assertions, 0 failures, 0 errors
+
 
 ##1. Instruction Format
 
@@ -13,7 +29,7 @@ OP X , Y , Z .
 
 The first byte of the instruction is the op code, and the remainder is the operands. If the amount of operands is less than 3, the blank position will be filled by 0. Almost all instruction's operands are register except LOADi, MOVi, SAVEi, CALL and BRANCH. The last operand is always the destination address. For Example:
 
-"ADD r1, r2, r1" means r3 = r1 + r2. The binary code is "8 1 1 1", which is a big-endian fashion.
+"ADD r1, r2, r3" means r3 = r1 + r2. The binary code is "8 1 1 1", which is a big-endian fashion.
 
 "LOADi 8, r1"  means load 4 bytes form memory address between 8 to 12 to register r1. The binary code is "0xc 0 8 1". 
 
